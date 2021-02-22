@@ -43,8 +43,8 @@ Print@Normal@Dataset[report[{"TimeElapsed","TestsFailedCount","TestsSucceededCou
 If[report["TestsFailedCount"]==0,
 Print@"Deploying code..."
 DumpSave["dump.mx", "KymoButler`"];
-DeleteObject[CloudObject["KymoButler/code64x"]];
-obj = CopyFile["dump.mx", CloudObject["KymoButler/code64x"]];
+DeleteObject[CloudObject["packages/KymoButler/code64x"]];
+obj = CopyFile["dump.mx", CloudObject["packages/KymoButler/code64x"]];
 SetOptions[obj, Permissions -> "Public"];
 DeleteFile["dump.mx"]
 ]
