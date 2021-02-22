@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-BeginPackage["KymoButlerV1v1v2`"]
+BeginPackage["KymoButler`"]
 UniKymoButler::usage="Function analyses a unidirectional kymograph"
 BiKymoButler::usage="Function analyses a bidirectional kymograph"
 BiKymoButlerSegment::usage="Function segments a bidirectional kymograph"
@@ -9,9 +9,25 @@ BiKymoButlerTrack::usage="BiKymoButlerTrack[pred_,kym_,kympreproc_,bool_,binthre
 UniKymoButlerTrack::usage="Function tracks a previously segmented unidirectional kymograph"
 benchmarkPrediction::usage="calculates track recal precision for a prediction and a ground truth"
 resolveOvlps::usage="Deletes overlapping tracks for benchmarking"
+loadDefaultNets::usage="loads default networks"
+deployPackage::usage="Deploys Package to  cloud"
 
 
 Begin["`Private`"]
+
+
+loadDefaultNets[dir_]:=Module[{tmp,netnames,cpath},
+	netnames={"Bidirectional_Segmentation_Module_V1_1","Classification_Module_V1_0","Unidrectional_Segmentation_Module_V1_0","Decision_Module_V1_0"};
+	cpath="https://www.wolframcloud.com/objects/deepmirror/Projects/KymoButler/networks/";
+	CreateDirectory@FileNameJoin@{dir,"..","models"};
+	AssociationThread[{"binet","classnet","uninet","decnet"}->Map[If[
+		FileExistsQ@FileNameJoin@{dir,"..","models",#},
+			Import@FileNameJoin@{dir,"..","models",#},
+			(tmp=CloudImport@CloudObject[cpath<>#];
+			Export[FileNameJoin@{dir,"..","models",#},tmp,"MX"];
+			tmp)
+			]&,netnames]]
+]
 
 
 (* ::Section:: *)
@@ -59,7 +75,7 @@ UniKymoButlerTrack[bool_,tmpkym_,out_,binthresh_,minSz_(*default 3*),minFr_(*def
 	antrks=Select[antrks,First@Last@#-First@First@#>=minFr&];
 	retrks=Select[retrks,First@Last@#-First@First@#>=minFr&];
 	(*colored lines and overlays*)
-	coloredlines=Dilation[ImageRotate[Image[Show[Image@Table[0,dim[[1]],dim[[2]]],Graphics@Map[{RandomColor[],Style[Line@#,Antialiasing->False]}&,Map[#-{1,0}&,Flatten[{antrks,retrks},1],{2}]]],ImageSize->Reverse@dim],-Pi/2],1];
+	coloredlines=ImageRotate[Image[Show[Image@Table[0,dim[[1]],dim[[2]]],Graphics@Map[{RandomColor[],Style[Line@#,Antialiasing->False]}&,Map[#-{1,0}&,Flatten[{antrks,retrks},1],{2}]]],ImageSize->Reverse@dim],-Pi/2];
 	overlay=ImageCompose[tmpkym,RemoveBackground[coloredlines,{Black,.01}]];
 	(*get labels and label overlay*)
 	ca=ComponentMeasurements[tmpa,"Centroid"];
@@ -486,13 +502,15 @@ BiKymoButlerTrack[pred_,kym_,kympreproc_,bool_,binthresh_,vthr_,vismod_,minSz_,m
 	
 	Sow[First@AbsoluteTiming[
 		(*colored lines and overlays*)
-		coloredlines=Dilation[ImageRotate[Image[Show[Image@Table[0,dim[[1]],dim[[2]]],Graphics@Map[{RandomColor[],Style[Line@#,Antialiasing->False]}&,Map[#-{1,0}&,trks,{2}]]],ImageSize->Reverse@dim],-Pi/2],1];
+		coloredlines=ImageRotate[Image[Show[Image@Table[0,dim[[1]],dim[[2]]],Graphics@Map[{RandomColor[],Style[Line@#,Antialiasing->False]}&,Map[#-{1,0}&,trks,{2}]]],ImageSize->Reverse@dim],-Pi/2];
 		overlay=ImageCompose[ImageAdjust@kym,RemoveBackground[coloredlines,{Black,.01}]];
 		(*get labels and label overlay*)
 		c=SparseArray[Flatten[Map[Thread[trks[[#]]->#]&,Range@Length@trks],1],{dim[[2]],dim[[1]]}];
 		
 		labels=ComponentMeasurements[c,"Centroid"];
-		overlaylabeled=HighlightImage[overlay,Map[ImageMarker[labels[[#,2]]+{0,5},Graphics[{If[bool,Black,White],Text[Style[ToString@#,FontSize->Scaled@.04]]}]]&,Range[Length@labels]]];
+		(*overlaylabeled=Image[HighlightImage[overlay,Map[ImageMarker[labels[[#,2]]+{0,5},Graphics[{If[bool,Black,White],Text[Style[ToString@#,FontSize->Scaled@.03]]}]]&,Range[Length@labels]]],ImageSize\[Rule]dim];*)
+		overlaylabeled=HighlightImage[overlay,Map[ImageMarker[labels[[#,2]]+{0,5},Graphics[{If[bool,Black,White],Text[Style[ToString@#,FontSize->Scaled@.03]]}]]&,Range[Length@labels]]];
+		
 		],"colorize"];
 	{kym,coloredlines,overlay,overlaylabeled,trks},
 	 {kym,Image@Table[0,dim[[2]],dim[[1]]],ImageAdjust@kym,ImageAdjust@kym,{}}

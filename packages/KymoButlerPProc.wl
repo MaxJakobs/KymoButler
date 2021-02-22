@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-BeginPackage["KymoButlerPProcV1v0v0`"]
+BeginPackage["KymoButlerPProc`"]
 
 pproc::usage="pproc[trks_,tsz_,xsz_] postprocessing butler output"
 
