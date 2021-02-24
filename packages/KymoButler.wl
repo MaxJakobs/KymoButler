@@ -70,7 +70,7 @@ UniKymoButlerTrack[bool_,tmpkym_,out_,binthresh_,minSz_(*default 3*),minFr_(*def
 	antrks=Transpose[{dim[[2]]+1-PixelValuePositions[antPaths,#][[;;,2]],PixelValuePositions[antPaths,#][[;;,1]]}]&/@Range[Length@Union@Flatten@tmpa-1];
 	retrks=Transpose[{dim[[2]]+1-PixelValuePositions[retPaths,#][[;;,2]],PixelValuePositions[retPaths,#][[;;,1]]}]&/@Range[Length@Union@Flatten@tmpr-1];
 
-	If[Length@antrks>0 && Length@retrks>0,	
+	If[Length@antrks>0 || Length@retrks>0,	
 	(*Extract average values at timepoints*)
 	antrks=Map[Round/@Mean/@GatherBy[#,First]&,antrks];
 	retrks=Map[Round/@Mean/@GatherBy[#,First]&,retrks];

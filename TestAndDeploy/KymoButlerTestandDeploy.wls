@@ -14,9 +14,11 @@ models=Quiet[loadDefaultNets[dir<>".."]];
 
 Print@"testing unidirectional";
 resultUNI=UniKymoButler[Import[dir<>"unitest.png"],(*detection threshold*).2,(*target Device (GPU or CPU), GPU only available with NVIDIA GPUs*)"CPU",models["uninet"],(*minimum particle size*)3,(*minimum frame number*)3];
+resultUNI2=UniKymoButler[Import[dir<>"unitest2.png"],(*detection threshold*).2,(*target Device (GPU or CPU), GPU only available with NVIDIA GPUs*)"CPU",models["uninet"],(*minimum particle size*)3,(*minimum frame number*)3];
 
 
 uniButtest=VerificationTest[Length@resultUNI[[-1]],7]
+uniButtest2=VerificationTest[Length@resultUNI2[[-2]],9]
 
 
 Print@"testing bidirectional";
@@ -37,7 +39,7 @@ processed=pproc[resultBI[[-1]] (*tracks are the last entry in the results*),1(*p
 biButpproctest=VerificationTest[Length@processed[[-1]],15]
 
 Print@"test results:"
-report=TestReport@{uniButtest,biButtest,biButpproctest};
+report=TestReport@{uniButtest,uniButtest2,biButtest,biButpproctest,};
 Print@Normal@Dataset[report[{"TimeElapsed","TestsFailedCount","TestsSucceededCount"}]]
 
 If[report["TestsFailedCount"]==0,
