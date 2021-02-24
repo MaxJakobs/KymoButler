@@ -17,14 +17,16 @@ Begin["`Private`"]
 
 
 loadDefaultNets[dir_]:=Module[{tmp,netnames,cpath},
-	netnames={"Bidirectional_Segmentation_Module_V1_1","Classification_Module_V1_0","Unidrectional_Segmentation_Module_V1_0","Decision_Module_V1_0"};
+	netnames=If[ToExpression@StringTake[$Version,4]>12,
+		{"Bidirectional_Segmentation_Module_V1_1","Classification_Module_V1_0","Unidrectional_Segmentation_Module_V1_0","Decision_Module_V1_0"},
+		{"Bidirectional_Segmentation_Module_V1_1_Math12_1","Classification_Module_V1_0_Math12_1","Unidrectional_Segmentation_Module_V1_0","Decision_Module_V1_0"}];
 	cpath="https://www.wolframcloud.com/objects/deepmirror/Projects/KymoButler/networks/";
-	CreateDirectory@FileNameJoin@{dir,"..","models"};
+	CreateDirectory@FileNameJoin@{dir,"models"};
 	AssociationThread[{"binet","classnet","uninet","decnet"}->Map[If[
-		FileExistsQ@FileNameJoin@{dir,"..","models",#},
-			Import@FileNameJoin@{dir,"..","models",#},
+		FileExistsQ@FileNameJoin@{dir,"models",#},
+			Import@FileNameJoin@{dir,"models",#},
 			(tmp=CloudImport@CloudObject[cpath<>#];
-			Export[FileNameJoin@{dir,"..","models",#},tmp,"MX"];
+			Export[FileNameJoin@{dir,"models",#},tmp,"MX"];
 			tmp)
 			]&,netnames]]
 ]

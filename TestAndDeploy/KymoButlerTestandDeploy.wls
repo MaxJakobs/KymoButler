@@ -9,7 +9,7 @@ Get[FileNameJoin@{dir,"..","packages","KymoButler.wl"}]
 Get[FileNameJoin@{dir,"..","packages","KymoButlerPProc.wl"}]
 
 
-models=Quiet[loadDefaultNets@dir];
+models=Quiet[loadDefaultNets[dir<>".."]];
 
 
 Print@"testing unidirectional";
