@@ -74,17 +74,21 @@ UniKymoButlerTrack[bool_,tmpkym_,out_,binthresh_,minSz_(*default 3*),minFr_(*def
 	(*Extract average values at timepoints*)
 	antrks=Map[Round/@Mean/@GatherBy[#,First]&,antrks];
 	retrks=Map[Round/@Mean/@GatherBy[#,First]&,retrks];
+	
 	antrks=Select[antrks,First@Last@#-First@First@#>=minFr&];
 	retrks=Select[retrks,First@Last@#-First@First@#>=minFr&];
 	(*colored lines and overlays*)
 	coloredlines=ImageRotate[Image[Show[Image@Table[0,dim[[1]],dim[[2]]],Graphics@Map[{RandomColor[],Style[Line@#,Antialiasing->False]}&,Map[#-{1,0}&,Flatten[{antrks,retrks},1],{2}]]],ImageSize->Reverse@dim],-Pi/2];
 	overlay=ImageCompose[tmpkym,RemoveBackground[coloredlines,{Black,.01}]];
 	(*get labels and label overlay*)
-	ca=ComponentMeasurements[tmpa,"Centroid"];
-	cr=ComponentMeasurements[tmpr,"Centroid"];
+	ca=SparseArray[Flatten[Map[Thread[antrks[[#]]->#]&,Range@Length@antrks],1],{dim[[2]],dim[[1]]}];
+	cr=SparseArray[Flatten[Map[Thread[retrks[[#]]->#]&,Range@Length@retrks],1],{dim[[2]],dim[[1]]}];
+	ca=ComponentMeasurements[ca,"Centroid"];
+	cr=ComponentMeasurements[cr,"Centroid"];
 	(*relabel retrograde ones*)
 	cr=ReplacePart[#,1->(#[[1]]+Length@ca)]&/@cr;
 	labels=Join[ca,cr];
+	Sow@labels;
 	overlaylabeled=HighlightImage[overlay,Map[ImageMarker[labels[[#,2]]+{0,5},Graphics[{If[bool,Black,White],Text[Style[ToString@#,FontSize->Scaled@.03]]}]]&,Range[Length@labels]]];
 	{tmpkym,coloredlines,overlay,overlaylabeled,antrks,retrks},
 	{tmpkym,Image@Table[0,dim[[2]],dim[[1]]],tmpkym,tmpkym,{},{}}
