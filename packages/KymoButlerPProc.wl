@@ -2,8 +2,9 @@
 
 BeginPackage["KymoButlerPProc`"]
 
+pprocLocal::usage="pproc[trks_,tsz_,xsz_] postprocessing butler output"
 pproc::usage="pproc[trks_,tsz_,xsz_] postprocessing butler output"
-
+getDerivedQuantities::usage="get derived quantities from track"
 Begin["`Private`"]
 
 
@@ -25,7 +26,7 @@ Missing[]]
 
 
 
-pproc[trks_,tsz_,xsz_]:=Module[{quant},
+pprocLocal[trks_,tsz_,xsz_]:=Module[{quant},
 	quant=Map[Round[N@getDerivedQuantities@#,0.0001]&,trks];
 	{{Histogram[Map[xsz/tsz*#["v"]&,quant],AxesLabel->{"v [um/sec]","Counts"}, PlotLabel->"average track velocities",LabelStyle->{"Font"->"Arial",Black},TicksStyle->{Black,Thick},AxesStyle->{Thick,Black}],
 	Histogram[Map[tsz*#["T"]&,quant],AxesLabel->{"T [sec]","Counts"}, PlotLabel->"Track durations",LabelStyle->{"Font"->"Arial",Black},TicksStyle->{Black,Thick},AxesStyle->{Thick,Black}],
@@ -36,23 +37,15 @@ pproc[trks_,tsz_,xsz_]:=Module[{quant},
 ];
 
 
-(*Basic Cloud form setup*)
-ConvertToCSV[trks_,tsz_,xsz_]:=Module[
-	{maxL=Max@Map[Length,trks],tmp,rescaledtrks},
-	If[Length@trks>0,
-		rescaledtrks=Map[{#[[1]]*tsz,#[[2]]*xsz}&,trks,{2}];
-		tmp=MapThread[Prepend[PadRight[#1,maxL,{{Null,Null}}],{"t [pixel] #"<>ToString@#2,"x [pixel] #"<>ToString@#2}]&,{rescaledtrks,Range@Length@rescaledtrks}];
-		Map[Flatten@tmp[[;;,#]]&,Range@(maxL+1)],{"None"}]
-		];
-		
-ConvertToCSVquant[q_,name_]:=Module[
-	{maxL=Max@Map[Length,q],tmp},
-	If[Length@q>0,
-		(*rescaledv=Map[#*xsz/tsz&,f2fv,{2}];*)
-		tmp=MapThread[Prepend[PadRight[#1,maxL,{{Null}}],{name<>" #"<>ToString@#2}]&,{q,Range@Length@q}];
-		Map[Flatten@tmp[[;;,#]]&,Range@(maxL+1)],{"None"}]
-		];
-
+pproc[trks_,tsz_,xsz_,minT_,minSz_,thr_,class_,version_]:=Module[{quant},
+	quant=Map[Round[N@getDerivedQuantities@#,0.0001]&,trks];
+	{{Histogram[Map[xsz/tsz*#["v"]&,quant],AxesLabel->{"v [um/sec]","Counts"}, PlotLabel->"average track velocities",LabelStyle->{"Font"->"Arial",Black},TicksStyle->{Black,Thick},AxesStyle->{Thick,Black}],
+	Histogram[Map[tsz*#["T"]&,quant],AxesLabel->{"T [sec]","Counts"}, PlotLabel->"Track durations",LabelStyle->{"Font"->"Arial",Black},TicksStyle->{Black,Thick},AxesStyle->{Thick,Black}],
+	Histogram[Map[xsz*#["dist"]&,quant],AxesLabel->{"Distance [um]","Counts"}, PlotLabel->"Track distances",LabelStyle->{"Font"->"Arial",Black},TicksStyle->{Black,Thick},AxesStyle->{Thick,Black}]},
+	Flatten[{{{"KymoButler Version "<>version<>" Summary","pixelsize time= "<>ToString@tsz<>" sec","pixelsize space= "<>ToString@xsz<>" um","minimum frames= "<>ToString@minT,"minimum obj size= "<>ToString@minSz,"threshold= "<>ToString@thr},
+	{"Direction","Av frame2frame velocity [um/sec]","track duration [sec]","track total displacement [um]","Start2end velocity [um/sec]"(*,"pause time [sec]","reversals #"*)}},
+	Transpose@{Map[#["direct"]&,quant],Map[Round[xsz/tsz*#["v"],.0001]&,quant],Map[Round[tsz*#["T"],.0001]&,quant],Map[Round[xsz*#["dist"],.0001]&,quant],Map[Round[xsz*#["dist"]/#["T"]/tsz,.0001]&,quant](*,Map[tsz*#["pauseT"]&,quant],Map[#["reversals"]&,quant]*)}},1]}
+];
 
 
 End[]

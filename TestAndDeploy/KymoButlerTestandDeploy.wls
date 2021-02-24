@@ -33,13 +33,13 @@ biButtest=VerificationTest[Length@resultBI[[-1]],13]
 Print@"testing postprocessing";
 
 
-processed=pproc[resultBI[[-1]] (*tracks are the last entry in the results*),1(*pixelsize time*),1(*pixelsize space*)]
+processed=pprocLocal[resultBI[[-1]] (*tracks are the last entry in the results*),1(*pixelsize time*),1(*pixelsize space*)]
 
 
 biButpproctest=VerificationTest[Length@processed[[-1]],15]
 
 Print@"test results:"
-report=TestReport@{uniButtest,uniButtest2,biButtest,biButpproctest,};
+report=TestReport@{uniButtest,uniButtest2,biButtest,biButpproctest};
 Print@Normal@Dataset[report[{"TimeElapsed","TestsFailedCount","TestsSucceededCount"}]]
 
 If[report["TestsFailedCount"]==0,
@@ -50,3 +50,6 @@ obj = CopyFile["dump.mx", CloudObject["packages/KymoButler/code64x"]];
 SetOptions[obj, Permissions -> "Public"];
 DeleteFile["dump.mx"]
 ]
+
+
+
