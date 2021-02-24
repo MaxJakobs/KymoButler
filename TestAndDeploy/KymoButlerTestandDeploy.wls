@@ -41,8 +41,8 @@ report=TestReport@{uniButtest,biButtest,biButpproctest};
 Print@Normal@Dataset[report[{"TimeElapsed","TestsFailedCount","TestsSucceededCount"}]]
 
 If[report["TestsFailedCount"]==0,
-Print@"Deploying code..."
-DumpSave["dump.mx", "KymoButler`"];
+Print@"Deploying code...";
+DumpSave["dump.mx", {"KymoButler`","KymoButlerPProc`"}];
 DeleteObject[CloudObject["packages/KymoButler/code64x"]];
 obj = CopyFile["dump.mx", CloudObject["packages/KymoButler/code64x"]];
 SetOptions[obj, Permissions -> "Public"];
