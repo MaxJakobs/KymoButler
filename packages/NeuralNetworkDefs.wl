@@ -6,6 +6,8 @@ BeginPackage["NeuralNetworkDefs`"]
 UNET::usage="build arbitrary UNET"
 UNETdsw::usage="UNETdsw[n_] using depth separable convolutions"
 UNETdswUnidirectional::usage="..."
+classnet::usage="classnet[nout_,enc_,insz_] builds simple classification net"
+VisionModule::usage="builds KymoButler's vision module"
 UNETunidirectional::usage="UNETdsw[n_] using depth separable convolutions"
 
 
@@ -25,6 +27,35 @@ DSDeconvolutionLayer[n_,k_,stride_:1]:=NetChain@{DeconvolutionLayer[n,k,"Stride"
 (*Depth separated convolutional block*)
 dsconvBlock[channelsin_,channelsout_,kernelSize_,stride_:1]:=NetChain[{DSConvolutionLayer[channelsin,channelsout,kernelSize,stride],BatchNormalizationLayer[],leayReLU[0.1]}];
 
+
+
+(* ::Section:: *)
+(*Vision Module*)
+
+
+VisionModule[sz_]:=NetGraph[<|
+"cat1"->CatenateLayer[],
+"drop1"->NetChain@{DropoutLayer[.05],ElementwiseLayer[#*(1-.05)&]},
+"drop2"->NetChain@{DropoutLayer[.5],ElementwiseLayer[#*(1-.5)&]},
+"cat2"->CatenateLayer[],
+"net"->UNET,
+"loss"->CrossEntropyLossLayer["Probabilities"]
+|>,
+{NetPort["bin"]->"drop1",NetPort["fullbin"]->"drop2",{"drop1","drop2"}->"cat1",{NetPort["img"],"cat1"}->"cat2"->"net"->NetPort["loss","Input"],NetPort["pred"]->NetPort["loss","Target"],"loss"->NetPort["Loss"]},
+"img"->NetEncoder[{"Image",{sz,sz},"Grayscale"}],"bin"->NetEncoder[{"Image",{sz,sz},"Grayscale"}],"fullbin"->NetEncoder[{"Image",{sz,sz},"Grayscale"}]]
+
+
+(* ::Section:: *)
+(*Simple Classification NET*)
+
+
+classnet[nout_,enc_,insz_]:=Module[{n=64},NetChain[{
+basicBlock[n,3],basicBlock[n,3],PoolingLayer[2,2],DropoutLayer[],
+basicBlock[2n,3],basicBlock[2n,3],PoolingLayer[2,2],DropoutLayer[],
+basicBlock[4n,3],basicBlock[4n,3],PoolingLayer[2,2],DropoutLayer[],
+PoolingLayer[{Ceiling[insz/16],Ceiling[insz/16]},"Function"->Mean],DropoutLayer[],256,leayReLU[.1],nout,SoftmaxLayer[]},
+"Input"->enc,
+"Output"->NetDecoder[{"Class",Range@nout}]]]
 
 
 (* ::Section:: *)
