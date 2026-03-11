@@ -201,9 +201,14 @@ def process_segmentation_uni(
 ) -> np.ndarray:
     """Full unidirectional morphological pipeline.
 
-    Pipeline: binarize -> resize -> thin -> smooth(3x) -> thin -> prune(2) -> filter.
+    Pipeline: binarize -> resize -> thin -> smooth(3x) -> thin -> filter.
     Corresponds to UniKymoButlerTrack in KymoButler.wl line 61:
       Pruning[Thinning@SmoothBinUni^3@Thinning@ImageResize[Binarize[...],dim],2]
+
+    Note: Mathematica's Pruning[..., 2] has no effect on these skeletons because
+    scikit-image's thin() already produces endpoint-free skeletons. Our
+    _prune_branches() was too aggressive, removing 200+ pixels that Mathematica
+    preserves. Skipping pruning matches Mathematica's effective behavior.
     """
     from skimage.transform import resize as sk_resize
 
@@ -220,9 +225,6 @@ def process_segmentation_uni(
 
     # Thin again
     binary = thin(binary)
-
-    # Prune short branches (2 iterations)
-    binary = _prune_branches(binary, iterations=2)
 
     # Filter by size and frame span
     binary = _filter_components(binary, min_size, min_frames)

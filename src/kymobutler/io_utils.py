@@ -14,6 +14,45 @@ import numpy as np
 from kymobutler.tracking import Track
 
 
+def save_segmentation_debug(
+    pred: np.ndarray | dict[str, np.ndarray],
+    output_dir: str | Path,
+    prefix: str = "",
+) -> None:
+    """Save raw segmentation predictions for debugging.
+
+    Saves the prediction map as both a grayscale PNG (for visual inspection)
+    and a .npy file (for numerical comparison with Mathematica reference).
+
+    Args:
+        pred: Prediction array (H, W) float32, or dict with 'ant'/'ret' keys.
+        output_dir: Directory to save debug outputs.
+        prefix: Filename prefix (e.g., 'bitest', 'unitest').
+    """
+    from PIL import Image as PILImage
+
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(pred, dict):
+        for key, arr in pred.items():
+            _save_pred_arrays(arr, out, f"{prefix}_{key}" if prefix else key)
+    else:
+        _save_pred_arrays(pred, out, prefix or "pred")
+
+
+def _save_pred_arrays(arr: np.ndarray, out_dir: Path, name: str) -> None:
+    """Save a single prediction array as PNG and .npy."""
+    from PIL import Image as PILImage
+
+    # Save as .npy for numerical comparison
+    np.save(out_dir / f"{name}_pred.npy", arr)
+
+    # Save as grayscale PNG for visual inspection
+    img_uint8 = (np.clip(arr, 0, 1) * 255).astype(np.uint8)
+    PILImage.fromarray(img_uint8).save(out_dir / f"{name}_pred.png")
+
+
 def save_tracks_csv(tracks: list[Track], output_path: str | Path) -> None:
     """Save tracks to a CSV file.
 

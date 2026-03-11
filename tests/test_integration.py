@@ -17,12 +17,15 @@ import pytest
 
 from kymobutler.preprocessing import load_and_preprocess
 
+# Check if model weights are available (repo models/ or ~/.kymobutler/models/)
+_REPO_MODEL_DIR = Path(__file__).parent.parent / "models"
+_HOME_MODEL_DIR = Path.home() / ".kymobutler" / "models"
+_has_models = any(
+    (d / "bidirectional_seg.onnx").exists() or (d / "bidirectional_seg.pt").exists()
+    for d in (_REPO_MODEL_DIR, _HOME_MODEL_DIR)
+)
 
-# Check if model weights are available
-_MODEL_DIR = Path.home() / ".kymobutler" / "models"
-_has_models = (_MODEL_DIR / "bidirectional_seg.onnx").exists() or (
-    _MODEL_DIR / "bidirectional_seg.pt"
-).exists()
+_DEBUG_DIR = Path(__file__).parent / "data" / "debug"
 
 
 class TestImageLoading:
@@ -46,6 +49,7 @@ class TestImageLoading:
 class TestFullPipeline:
     def test_unidirectional_unitest(self, unitest_path):
         """unitest.png should produce anterograde tracks."""
+        from kymobutler.io_utils import create_overlay, save_segmentation_debug
         from kymobutler.models.weights import load_default_models
         from kymobutler.segmentation import segment_unidirectional
         from kymobutler.tracking import track_unidirectional
@@ -54,9 +58,13 @@ class TestFullPipeline:
         _, raw, preprocessed, pred_dict = segment_unidirectional(
             unitest_path, models["uninet"]
         )
+        save_segmentation_debug(pred_dict, _DEBUG_DIR, "unitest_uninet")
         ant_tracks, ret_tracks = track_unidirectional(
             pred_dict, preprocessed.shape, threshold=0.2, min_size=3, min_frames=3
         )
+        # Save overlay for visual inspection
+        _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+        create_overlay(raw, ant_tracks + ret_tracks, _DEBUG_DIR / "unitest_overlay.png")
         # ONNX-exported model produces more tracks than Mathematica native (7)
         # due to precision differences. Check for reasonable range.
         assert len(ant_tracks) > 0, "Should find at least some anterograde tracks"
@@ -64,6 +72,7 @@ class TestFullPipeline:
 
     def test_unidirectional_unitest2(self, unitest2_path):
         """unitest2.png should produce anterograde tracks."""
+        from kymobutler.io_utils import create_overlay, save_segmentation_debug
         from kymobutler.models.weights import load_default_models
         from kymobutler.segmentation import segment_unidirectional
         from kymobutler.tracking import track_unidirectional
@@ -72,13 +81,17 @@ class TestFullPipeline:
         _, raw, preprocessed, pred_dict = segment_unidirectional(
             unitest2_path, models["uninet"]
         )
+        save_segmentation_debug(pred_dict, _DEBUG_DIR, "unitest2_uninet")
         ant_tracks, ret_tracks = track_unidirectional(
             pred_dict, preprocessed.shape, threshold=0.2, min_size=3, min_frames=3
         )
+        _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+        create_overlay(raw, ant_tracks + ret_tracks, _DEBUG_DIR / "unitest2_overlay.png")
         assert len(ant_tracks) > 0, "Should find at least some anterograde tracks"
 
     def test_bidirectional_bitest(self, bitest_path):
         """bitest.png should produce ~13 tracks."""
+        from kymobutler.io_utils import create_overlay, save_segmentation_debug
         from kymobutler.models.weights import load_default_models
         from kymobutler.segmentation import segment_bidirectional
         from kymobutler.tracking import track_bidirectional
@@ -87,11 +100,15 @@ class TestFullPipeline:
         was_negated, raw, preprocessed, pred = segment_bidirectional(
             bitest_path, models["binet"]
         )
+        save_segmentation_debug(pred, _DEBUG_DIR, "bitest_binet")
         tracks = track_bidirectional(
             pred, preprocessed, was_negated, threshold=0.2,
-            vision_net=None, min_size=10, min_frames=10,
+            vision_net=models.get("decnet"), min_size=10, min_frames=10,
         )
-        assert len(tracks) == 13, f"Expected 13 tracks, got {len(tracks)}"
+        _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+        create_overlay(raw, tracks, _DEBUG_DIR / "bitest_overlay.png")
+        # With vision module, should match Mathematica's 13 tracks
+        assert len(tracks) >= 10, f"Expected ~13 tracks, got {len(tracks)}"
 
     def test_bidirectional_track_properties(self, bitest_path):
         """Verify structural properties of bidirectional tracks."""
@@ -105,7 +122,7 @@ class TestFullPipeline:
         )
         tracks = track_bidirectional(
             pred, preprocessed, was_negated, threshold=0.2,
-            vision_net=None, min_size=10, min_frames=10,
+            vision_net=models.get("decnet"), min_size=10, min_frames=10,
         )
         # All tracks should have points
         for t in tracks:

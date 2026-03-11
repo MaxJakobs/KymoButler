@@ -54,7 +54,7 @@ def main():
     parser = argparse.ArgumentParser(description="Validate converted models")
     parser.add_argument("--model-dir", type=Path, default=Path.home() / ".kymobutler" / "models")
     parser.add_argument("--reference-dir", type=Path, default=Path("models"))
-    parser.add_argument("--test-image", type=Path, default=Path("TestAndDeploy/bitest.png"))
+    parser.add_argument("--test-image", type=Path, default=Path("tests/data/bitest.png"))
     args = parser.parse_args()
 
     model_path = args.model_dir / "bidirectional_seg.pt"
