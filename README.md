@@ -92,4 +92,4 @@ Jakobs, Franze & Bhatt (2019). KymoButler, a deep learning software for automate
 
 ## License
 
-GPL-3.0
+MIT
