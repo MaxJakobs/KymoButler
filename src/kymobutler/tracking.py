@@ -136,9 +136,9 @@ def _make_track(
             [p if isinstance(p, tuple) else tuple(p) for p in new_points]
         )
 
-    # Remove sentinel/out-of-bounds coordinates
+    # Remove out-of-bounds coordinates (0-indexed)
     track_points = [
-        (r, c) for r, c in track_points if 0 < r <= h and 0 < c <= w
+        (r, c) for r, c in track_points if 0 <= r < h and 0 <= c < w
     ]
 
     track.points = track_points
@@ -368,10 +368,10 @@ def track_bidirectional(
         return []
 
     # Phase 4: Post-tracking cleanup
-    # Clamp coordinates to image bounds
+    # Clamp coordinates to image bounds (0-indexed)
     for track in tracks:
         track.points = [
-            (max(1, min(r, h)), max(1, min(c, w))) for r, c in track.points
+            (max(0, min(r, h - 1)), max(0, min(c, w - 1))) for r, c in track.points
         ]
 
     # Average duplicates at same timepoint

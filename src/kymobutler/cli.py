@@ -42,6 +42,7 @@ def cli():
     help="Track data output format.",
 )
 @click.option("--save-overlay/--no-overlay", default=True, help="Save overlay visualization.")
+@click.option("--save-debug/--no-debug", default=False, help="Save raw segmentation predictions for debugging.")
 def analyze(
     image,
     mode,
@@ -56,11 +57,12 @@ def analyze(
     output_dir,
     output_format,
     save_overlay,
+    save_debug,
 ):
     """Analyze a kymograph image."""
     import torch
 
-    from kymobutler.io_utils import create_overlay, save_statistics_csv, save_tracks_csv, save_tracks_json
+    from kymobutler.io_utils import create_overlay, save_segmentation_debug, save_statistics_csv, save_tracks_csv, save_tracks_json
     from kymobutler.models.weights import load_default_models
     from kymobutler.postprocessing import postprocess
     from kymobutler.segmentation import segment_bidirectional, segment_unidirectional
@@ -95,6 +97,10 @@ def analyze(
             was_negated, raw, preprocessed, pred = segment_bidirectional(
                 image, models["binet"], device
             )
+            if save_debug:
+                debug_dir = output_path / f"{image_name}_debug"
+                save_segmentation_debug(pred, debug_dir, "binet")
+                click.echo(f"Debug predictions saved to {debug_dir}")
             click.echo("Tracking...")
             tracks = track_bidirectional(
                 pred, preprocessed, was_negated, threshold, vision_threshold,
@@ -105,6 +111,10 @@ def analyze(
             was_negated, raw, preprocessed, pred_dict = segment_unidirectional(
                 image, models["uninet"], device
             )
+            if save_debug:
+                debug_dir = output_path / f"{image_name}_debug"
+                save_segmentation_debug(pred_dict, debug_dir, "uninet")
+                click.echo(f"Debug predictions saved to {debug_dir}")
             click.echo("Tracking...")
             ant_tracks, ret_tracks = track_unidirectional(
                 pred_dict, preprocessed.shape, threshold, min_size, min_frames

@@ -22,8 +22,10 @@ WEIGHT_FILES = {
     "classnet": "classifier.pt",
 }
 
-# Default model cache directory
-DEFAULT_MODEL_DIR = Path.home() / ".kymobutler" / "models"
+# Model directories: check repo models/ first, then ~/.kymobutler/models/
+_REPO_MODEL_DIR = Path(__file__).parent.parent.parent / "models"
+_HOME_MODEL_DIR = Path.home() / ".kymobutler" / "models"
+DEFAULT_MODEL_DIR = _REPO_MODEL_DIR if _REPO_MODEL_DIR.exists() else _HOME_MODEL_DIR
 
 # Segmentation defaults
 DEFAULT_THRESHOLD = 0.2

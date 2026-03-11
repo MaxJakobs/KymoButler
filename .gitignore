@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -9,6 +10,21 @@ build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-*.onnx
+
+# Model weights (PyTorch derived from ONNX — regenerate via scripts/convert_weights.py)
 *.pt
+
+# Mathematica raw weights
 models/raw_weights/
+models/Bidirectional_Segmentation_Module_V1_1/
+models/Classification_Module_V1_0/
+models/Decision_Module_V1_0/
+models/Unidrectional_Segmentation_Module_V1_0/
+legacy/**/*.mx
+
+# Generated debug/comparison artifacts
+tests/data/debug/
+tests/data/comparison/
+
+# OS files
+.DS_Store

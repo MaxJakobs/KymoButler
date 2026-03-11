@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-TEST_DATA_DIR = Path(__file__).parent.parent / "TestAndDeploy"
+TEST_DATA_DIR = Path(__file__).parent / "data"
 
 
 @pytest.fixture
