@@ -2,11 +2,6 @@
 
 from pathlib import Path
 
-# Model URLs (Wolfram Cloud hosted originals - for reference)
-WOLFRAM_CLOUD_BASE = (
-    "https://www.wolframcloud.com/objects/deepmirror/Projects/KymoButler/networks/"
-)
-
 MODEL_NAMES = {
     "binet": "Bidirectional_Segmentation_Module_V1_1",
     "classnet": "Classification_Module_V1_0",

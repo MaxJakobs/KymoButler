@@ -4,6 +4,14 @@
 
 Deep learning for automated kymograph analysis. KymoButler segments and tracks particles in kymographs (space-time images from live microscopy), supporting both bidirectional and unidirectional transport.
 
+## Try it online
+
+No installation required — the hosted web app lets you upload kymographs (individually or as a `.zip`), run the analysis, and download results right in your browser:
+
+**[kymobutler.app](https://kymobutler.app)** — free tier available; just sign up to get started.
+
+For local or programmatic use, install from source as described below.
+
 ## Installation
 
 ```bash
