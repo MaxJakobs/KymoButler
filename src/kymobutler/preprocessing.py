@@ -81,11 +81,18 @@ def load_and_preprocess(image_path: str | Path) -> tuple[np.ndarray, np.ndarray,
         background = Image.new("RGBA", img.size, (255, 255, 255, 255))
         img = Image.alpha_composite(background, img)
 
-    # Convert to grayscale
-    img = img.convert("L")
-
-    # To float32 [0, 1]
-    raw = np.array(img, dtype=np.float32) / 255.0
+    # Convert to grayscale float32. 8-bit modes use PIL's convert("L") and scale by 255.
+    # High-bit-depth modes ('I', 'I;16', 'F' from 16-bit / float TIFFs) must NOT go through
+    # convert("L") — it clamps every value > 255 to 255, collapsing the image to a constant
+    # (which polarity detection then inverts to solid black). Read the true pixel values
+    # instead; rescale_intensity below stretches either branch to the full [0, 1] range.
+    if img.mode in ("L", "P", "1", "RGB", "RGBA", "LA"):
+        raw = np.array(img.convert("L"), dtype=np.float32) / 255.0
+    else:
+        arr = np.asarray(img, dtype=np.float32)
+        if arr.ndim > 2:  # trailing colour channels -> luminance
+            arr = arr[..., :3].mean(axis=-1)
+        raw = arr
 
     # ImageAdjust: rescale to full range
     raw = rescale_intensity(raw.astype(np.float64), out_range=(0.0, 1.0)).astype(np.float32)

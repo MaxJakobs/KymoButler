@@ -71,3 +71,27 @@ class TestLoadAndPreprocess:
     def test_output_shapes_match(self, bitest_path):
         preprocessed, raw, _ = load_and_preprocess(bitest_path)
         assert preprocessed.shape == raw.shape
+
+    def test_float_tiff_not_collapsed_to_black(self, tmp_path):
+        # Regression: 16-bit-range float TIFFs (e.g. microscope exports) used to hit
+        # convert("L")'s >255 clamp, collapsing to a constant image that polarity detection
+        # inverted to solid black -> zero tracks. The gradient must survive with real range.
+        from PIL import Image
+
+        arr = np.linspace(800.0, 26000.0, 64 * 96, dtype=np.float32).reshape(64, 96)
+        p = tmp_path / "scan_16bit.tif"
+        Image.fromarray(arr, mode="F").save(str(p))
+        preprocessed, raw, _ = load_and_preprocess(str(p))
+        assert float(preprocessed.max()) > 0.5          # signal preserved, not black
+        assert float(raw.min()) < float(raw.max())      # dynamic range retained
+
+    def test_8bit_png_full_range(self, tmp_path):
+        # The mode branch must leave ordinary 8-bit images behaving as before.
+        from PIL import Image
+
+        arr = (np.arange(64 * 96, dtype=np.int64) % 256).astype(np.uint8).reshape(64, 96)
+        p = tmp_path / "img.png"
+        Image.fromarray(arr, mode="L").save(str(p))
+        preprocessed, raw, _ = load_and_preprocess(str(p))
+        assert preprocessed.shape == (64, 96)
+        assert 0.0 <= float(preprocessed.min()) and float(preprocessed.max()) <= 1.0
