@@ -1,6 +1,10 @@
-"""Vision module inference wrapper and tile extraction.
+"""Vision (decision) module inference and candidate extraction.
 
-Corresponds to GetTile, GetCandFromPmap, GetCand in KymoButler.wl lines 148-243.
+Corresponds to GetTile, GetCandFromPmap, SortCoords and GetCand in KymoButler.wl lines 128-243.
+
+Coordinates are 0-based (row, col) tuples. Mathematica works 1-based; every step here is
+translation invariant (differences, distances, canonical lexicographic tie-breaks), so the
+0-based computation reproduces it exactly.
 """
 
 from __future__ import annotations
@@ -9,299 +13,209 @@ import numpy as np
 import torch
 from scipy.ndimage import label
 from scipy.spatial import KDTree
+from skimage.morphology import thin
 
-from kymobutler.config import VISION_MODULE_TILE_SIZE, MAX_CANDIDATES
+from kymobutler.config import MAX_CANDIDATES, VISION_MODULE_TILE_SIZE
 from kymobutler.graph_utils import find_shortest_path_on_skeleton
 
+_TILE = VISION_MODULE_TILE_SIZE  # 48
+_PAD = round(1 + _TILE / 2)  # Round[1 + dim/2] = 25
+_NEAR_RADIUS = _TILE * 1.5  # Nearest[allyx, Last@trk, {All, dim*1.5}]
+_NEIGHBOURS_8 = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if dr or dc]
+_STRUCT_8 = np.ones((3, 3), dtype=int)
 
-def get_tile(
-    kym: np.ndarray,
-    track: list[tuple[int, int]],
-    allyx: np.ndarray,
-    tile_size: int = VISION_MODULE_TILE_SIZE,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[list[int]]]:
-    """Extract a tile centered on the last track point.
 
-    Corresponds to GetTile in KymoButler.wl lines 148-162.
+class VisionContext:
+    """Per-kymograph state for GetCand: the padded kymograph and skeleton, built once."""
 
-    Args:
-        kym: Full kymograph image (H, W) float32.
-        track: Track coordinates as list of (row, col).
-        allyx: All skeleton coordinates (N, 2) array.
-        tile_size: Size of the extracted tile.
+    def __init__(
+        self,
+        kym: np.ndarray,
+        paths: np.ndarray,
+        vision_net: torch.nn.Module,
+        threshold: float,
+        device: str = "cpu",
+    ):
+        self.h, self.w = kym.shape
+        # padkym = ArrayPad[ImageData@kym, Round[1 + dim/2], .1]
+        self.padkym = np.pad(kym.astype(np.float32), _PAD, mode="constant", constant_values=0.1)
+        self.padpaths = np.pad(np.asarray(paths, dtype=bool), _PAD)
+        self.net = vision_net
+        self.net.eval()
+        self.threshold = threshold
+        self.device = device
+        self._kdtree: KDTree | None = None
+        self.n_calls = 0  # vision-module evaluations
 
-    Returns:
-        (tile_image, track_mask, structure_mask, window)
-        - tile_image: (tile_size, tile_size) kymograph crop
-        - track_mask: (tile_size, tile_size) binary mask of track points in tile
-        - structure_mask: (tile_size, tile_size) binary mask of all skeleton in tile
-        - window: [[row_start, row_end], [col_start, col_end]]
-    """
-    h, w = kym.shape
-    last = track[-1]
-    half = tile_size // 2
-
-    # Compute window
-    row_start = round(last[0] - half)
-    row_end = round(last[0] + half - 1)
-    col_start = round(last[1] - half)
-    col_end = round(last[1] + half - 1)
-
-    # Boundary correction (shift window to stay within image)
-    if row_start < 0:
-        row_end -= row_start
-        row_start = 0
-    elif row_end >= h:
-        row_start -= (row_end - h + 1)
-        row_end = h - 1
-
-    if col_start < 0:
-        col_end -= col_start
-        col_start = 0
-    elif col_end >= w:
-        col_start -= (col_end - w + 1)
-        col_end = w - 1
-
-    # Clamp to valid range
-    row_start = max(0, row_start)
-    col_start = max(0, col_start)
-    row_end = min(h - 1, row_end)
-    col_end = min(w - 1, col_end)
-
-    win = [[row_start, row_end + 1], [col_start, col_end + 1]]
-
-    # Extract tile
-    tile = kym[win[0][0]:win[0][1], win[1][0]:win[1][1]]
-    # Rescale to [0, 1]
-    if tile.max() > tile.min():
-        tile = (tile - tile.min()) / (tile.max() - tile.min())
-
-    # Track mask
-    track_mask = np.zeros((h, w), dtype=np.float32)
-    for r, c in track:
-        ri, ci = round(r), round(c)
-        if 0 <= ri < h and 0 <= ci < w:
-            track_mask[ri, ci] = 1.0
-    track_mask = track_mask[win[0][0]:win[0][1], win[1][0]:win[1][1]]
-
-    # Structure mask
-    struct_mask = np.zeros((h, w), dtype=np.float32)
-    for r, c in allyx:
-        ri, ci = round(r), round(c)
-        if 0 <= ri < h and 0 <= ci < w:
-            struct_mask[ri, ci] = 1.0
-    struct_mask = struct_mask[win[0][0]:win[0][1], win[1][0]:win[1][1]]
-
-    return tile.astype(np.float32), track_mask, struct_mask, win
+    def any_path_pixel_near(self, point: tuple[int, int]) -> bool:
+        """Is any skeleton pixel within 72 px (inclusive) of ``point``?"""
+        if self._kdtree is None:
+            coords = np.argwhere(self.padpaths[_PAD:-_PAD, _PAD:-_PAD]).astype(np.float64)
+            if len(coords) == 0:
+                return False
+            self._kdtree = KDTree(coords)
+        return self._kdtree.query_ball_point(point, r=_NEAR_RADIUS, return_length=True) > 0
 
 
 def get_candidates_from_pmap(
     pmap: np.ndarray, threshold: float
-) -> tuple[list[tuple[int, int]], float]:
-    """Extract candidate coordinates from the vision module probability map.
+) -> tuple[list[tuple[int, int]], float | None]:
+    """Candidates from the vision-module probability map (GetCandFromPmap, KymoButler.wl 164-171).
 
-    Finds the largest connected component in the binarized probability map,
-    thins it, and returns its pixel positions.
-    Corresponds to GetCandFromPmap in KymoButler.wl lines 164-171.
+    Largest 8-connected component of ``pmap > threshold`` (the first one on ties), thinned.
 
     Returns:
-        (candidates, decision_prob) where candidates are (row, col) coords
-        and decision_prob is the mean probability over the selected component.
+        (candidates, decision_prob). Candidates are (row, col) in lexicographic order.
+        decision_prob is the mean of ``pmap`` over that component; Mathematica Sows it to
+        "DecisionProb" whenever a component exists, whatever GetCand later does with the
+        candidates. It is None (nothing Sown) when no pixel exceeds the threshold.
     """
-    from skimage.morphology import thin as skimage_thin
-
-    binary = pmap > threshold
-    structure = np.ones((3, 3), dtype=int)
-    labeled, num = label(binary, structure=structure)
+    labeled, num = label(pmap > threshold, structure=_STRUCT_8)
     if num == 0:
-        return [], 0.0
-
-    # Find largest component by area
-    max_area = 0
-    max_label = 0
-    for i in range(1, num + 1):
-        area = np.sum(labeled == i)
-        if area > max_area:
-            max_area = area
-            max_label = i
-
-    component_mask = labeled == max_label
-
-    # Decision probability: mean pmap value over the component
-    decision_prob = float(np.sum(component_mask * pmap) / np.sum(component_mask))
-
-    # Thin the component and get coordinates
-    thinned = skimage_thin(component_mask)
-    coords = list(zip(*np.where(thinned)))
-
+        return [], None
+    counts = np.bincount(labeled.ravel())[1:]
+    mask = labeled == (int(np.argmax(counts)) + 1)  # MaxIndx: first maximum
+    decision_prob = float(pmap[mask].astype(np.float64).sum() / mask.sum())
+    coords = [(int(r), int(c)) for r, c in np.argwhere(thin(mask))]
     return coords, decision_prob
 
 
-def _sort_coords_greedy(coords: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    """Sort coordinates into a connected chain using greedy nearest-neighbor.
+def sort_coords(coords: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Order candidates into a chain (SortCoords, KymoButler.wl 128-146).
 
-    Tries both directions from the first point and returns the longer chain.
-    Corresponds to SortCoords in KymoButler.wl lines 128-146.
+    From the first point, repeatedly step to a remaining point within distance 1.5 (an
+    8-neighbour): the "left" chain takes ``First@SortBy[foo, Last]`` (minimum column, ties by
+    minimum row: SortBy breaks ties in canonical order), the "right" chain
+    ``Last@SortBy[foo, Last]`` (maximum column, then maximum row). Returns
+    ``Last@SortBy[{outR, outL}, Length]``: the longer chain, the canonically larger one on
+    equal length.
     """
     if len(coords) <= 1:
-        return coords
+        return list(coords)
+    first = coords[0]
 
-    coords_arr = np.array(coords, dtype=np.float64)
-
-    def grow_chain(start_idx: int, prefer_min: bool) -> list[tuple[int, int]]:
-        chain = [coords[start_idx]]
-        remaining = set(range(len(coords))) - {start_idx}
-        kdtree = KDTree(coords_arr)
-
+    def grow(pick_max: bool) -> list[tuple[int, int]]:
+        remaining = set(coords[1:])
+        out = [first]
         while remaining:
-            last = np.array(chain[-1], dtype=np.float64)
-            indices = kdtree.query_ball_point(last, r=1.5)
-            indices = [i for i in indices if i in remaining]
-            if not indices:
+            r, c = out[-1]
+            nbrs = [(r + dr, c + dc) for dr, dc in _NEIGHBOURS_8 if (r + dr, c + dc) in remaining]
+            if not nbrs:
                 break
-            # Sort by last coordinate (col) and pick first or last
-            candidates = [(i, coords[i]) for i in indices]
-            if prefer_min:
-                candidates.sort(key=lambda x: x[1][1])
-            else:
-                candidates.sort(key=lambda x: x[1][1], reverse=True)
-            chosen_idx = candidates[0][0]
-            chain.append(coords[chosen_idx])
-            remaining.discard(chosen_idx)
+            key = lambda p: (p[1], p[0])  # noqa: E731
+            pick = max(nbrs, key=key) if pick_max else min(nbrs, key=key)
+            out.append(pick)
+            remaining.discard(pick)
+        return out
 
-        return chain
+    out_l = grow(pick_max=False)
+    out_r = grow(pick_max=True)
+    return max([out_r, out_l], key=lambda o: (len(o), o))
 
-    chain_left = grow_chain(0, prefer_min=True)
-    chain_right = grow_chain(0, prefer_min=False)
 
-    return chain_left if len(chain_left) >= len(chain_right) else chain_right
+def _rows_mean_ok(points: list[tuple[int, int]], last_row: int) -> bool:
+    """Mean[points[[;;,1]]] - First@lastTrk >= -1, in exact integer arithmetic."""
+    n = len(points)
+    return sum(p[0] for p in points) - n * last_row >= -n
 
 
 def get_candidates(
-    kym: np.ndarray,
+    ctx: VisionContext,
     track: list[tuple[int, int]],
-    allyx: np.ndarray,
-    threshold: float,
-    vision_net: torch.nn.Module,
-    device: str = "cpu",
-) -> tuple[list[tuple[int, int]], float]:
-    """Use the vision module to find candidate next coordinates.
-
-    Corresponds to GetCand in KymoButler.wl lines 183-243.
+) -> tuple[list[tuple[int, int]], float | None]:
+    """Use the vision module to find the next coordinates of a track (GetCand, KymoButler.wl 183-243).
 
     Args:
-        kym: Preprocessed kymograph (H, W).
-        track: Current track coordinates.
-        allyx: All skeleton coordinates.
-        threshold: Vision module binarization threshold.
-        vision_net: Loaded VisionNet model.
-        device: Computation device.
+        ctx: Per-kymograph context (padded kymograph/skeleton, net, threshold).
+        track: Current track (at least 3 points), 0-based (row, col).
 
     Returns:
-        (new_coordinates, decision_prob) - new coords to extend track, and confidence.
+        (new_coordinates, decision_prob): the coordinates to append (0-based, possibly outside
+        the image) and the probability Mathematica Sows for this call (None if it Sows
+        nothing).
     """
-    dim = VISION_MODULE_TILE_SIZE
-    pad_size = round(1 + dim / 2)
+    dim, pad = _TILE, _PAD
+    last = track[-1]
+    # allyxtmp = Nearest[allyx + pad, Last@trktmp, {All, 72}]; If[Length@allyxtmp > 0, ..., {}]
+    # trktmp = Drop[trktmp, -1]: the tile, lastTrk and the Complement use the track without its
+    # last point, so the tile is centred on the second-to-last point.
+    s_r, s_c = track[-2]
 
-    # Pad the kymograph
-    padkym = np.pad(kym, pad_size, mode="constant", constant_values=0.1)
+    # GetTile window (Round[Last@trk - dim/2] .. Round[Last@trk + dim/2 - 1], shifted inside).
+    hp, wp = ctx.padkym.shape
+    r0 = s_r + pad - dim // 2
+    c0 = s_c + pad - dim // 2
+    if r0 < 0:
+        r0 = 0
+    elif r0 + dim > hp:
+        r0 = hp - dim
+    if c0 < 0:
+        c0 = 0
+    elif c0 + dim > wp:
+        c0 = wp - dim
 
-    # Shift coordinates to padded space
-    allyx_padded = allyx + pad_size
-    track_padded = [(r + pad_size, c + pad_size) for r, c in track]
+    # fullbin: skeleton pixels within 72 px of the (true) last point, cropped to the window.
+    fullbin = ctx.padpaths[r0:r0 + dim, c0:c0 + dim].copy()
+    lr, lc = last[0] + pad - r0, last[1] + pad - c0  # last point in tile coordinates
+    farthest_sq = max(lr ** 2, (dim - 1 - lr) ** 2) + max(lc ** 2, (dim - 1 - lc) ** 2)
+    if farthest_sq > _NEAR_RADIUS ** 2:  # some tile pixel is farther than 72 px from it
+        rr, cc = np.ogrid[:dim, :dim]
+        fullbin &= (rr - lr) ** 2 + (cc - lc) ** 2 <= _NEAR_RADIUS ** 2
+    if not fullbin.any() and not ctx.any_path_pixel_near(last):
+        return [], None
 
-    last_padded = np.array(track_padded[-1], dtype=np.float64)
+    # tile: ImageAdjust@ImageTake[padkym, win] (ImageAdjust maps a constant image to 0)
+    tile = ctx.padkym[r0:r0 + dim, c0:c0 + dim].astype(np.float64)
+    tmin, tmax = tile.min(), tile.max()
+    tile = (tile - tmin) / (tmax - tmin) if tmax > tmin else np.zeros_like(tile)
+    tile = tile.astype(np.float32)
 
-    # Find nearby skeleton pixels
-    if len(allyx_padded) == 0:
-        return [], 0.0
-    kdtree = KDTree(allyx_padded)
-    nearby_idx = kdtree.query_ball_point(last_padded, r=dim * 1.5)
-    nearby = allyx_padded[nearby_idx]
-    nearby = nearby[nearby[:, 0].argsort()]  # sort by row
+    # bin: the track without its last point, cropped to the window.
+    trk = np.asarray(track[:-1], dtype=np.int64) + pad - np.array([r0, c0])
+    inside = (trk[:, 0] >= 0) & (trk[:, 0] < dim) & (trk[:, 1] >= 0) & (trk[:, 1] < dim)
+    trkbin = np.zeros((dim, dim), dtype=np.float32)
+    trkbin[trk[inside, 0], trk[inside, 1]] = 1.0
 
-    if len(nearby) == 0:
-        return [], 0.0
+    def as_tensor(a: np.ndarray) -> torch.Tensor:
+        return torch.from_numpy(np.ascontiguousarray(a, dtype=np.float32))[None, None].to(ctx.device)
 
-    # Drop last point from track for tile extraction
-    track_for_tile = track_padded[:-1]
-    if len(track_for_tile) < 2:
-        return [], 0.0
-
-    # Get tile
-    tile, track_mask, struct_mask, win = get_tile(padkym, track_for_tile, nearby, dim)
-
-    # Ensure correct tile size
-    if tile.shape[0] != dim or tile.shape[1] != dim:
-        return [], 0.0
-
-    # Run vision module
-    tile_t = torch.from_numpy(tile).unsqueeze(0).unsqueeze(0).float().to(device)
-    trk_t = torch.from_numpy(track_mask).unsqueeze(0).unsqueeze(0).float().to(device)
-    struct_t = torch.from_numpy(struct_mask).unsqueeze(0).unsqueeze(0).float().to(device)
-
-    vision_net.eval()
     with torch.no_grad():
-        pmap_out = vision_net(tile_t, trk_t, struct_t)  # (1, 2, H, W)
+        pmap = ctx.net(as_tensor(tile), as_tensor(trkbin), as_tensor(fullbin))[0, 1].cpu().numpy()
+    ctx.n_calls += 1
 
-    # Take foreground channel
-    pmap = pmap_out[0, 1].cpu().numpy()  # (H, W) - second channel is foreground
+    cands, decision_prob = get_candidates_from_pmap(pmap, ctx.threshold)
+    if not cands:
+        return [], decision_prob
 
-    # Rescale coordinates to tile space
-    win_offset = np.array([win[0][0], win[1][0]])
-    last_in_tile = np.array(track_padded[-1]) - win_offset
+    # cands = Complement[cands, trktmp]: Mathematica compares the tile coordinates of the
+    # candidates with the *padded full-image* coordinates of the track, so this only sorts,
+    # de-duplicates and drops the (rare) candidates whose tile coordinates coincide with a
+    # padded track coordinate. Candidates on the existing track are kept.
+    padded_track = np.asarray(track[:-1], dtype=np.int64) + pad
+    near_origin = padded_track[(padded_track[:, 0] < dim) & (padded_track[:, 1] < dim)]
+    if len(near_origin):
+        drop = {(int(r), int(c)) for r, c in near_origin}
+        cands = [p for p in cands if p not in drop]
 
-    # Get candidates from probability map
-    cands, decision_prob = get_candidates_from_pmap(pmap, threshold)
-    if len(cands) == 0:
-        return [], 0.0
+    # lastTrk = Last@trktmp in tile coordinates (the second-to-last track point).
+    t_r, t_c = s_r + pad - r0, s_c + pad - c0
+    cands.sort(key=lambda p: ((p[0] - t_r) ** 2 + (p[1] - t_c) ** 2, p))
+    if not (len(cands) > 2 and _rows_mean_ok(cands, t_r)):
+        return [], decision_prob
 
-    # Remove coordinates already in track
-    track_set = set(map(tuple, track_padded))
-    cands = [c for c in cands if tuple(np.array(c) + win_offset) not in track_set]
+    cands = sort_coords(cands)
+    select = cands
+    if (cands[0][0] - t_r) ** 2 + (cands[0][1] - t_c) ** 2 > 1.5 ** 2:
+        # FindShortPathImage over the skeleton pixels of the tile, lastTrk -> First@cands
+        # (the path includes both ends).
+        select = find_shortest_path_on_skeleton(fullbin, (t_r, t_c), cands[0]) + cands
+    select = select[:MAX_CANDIDATES]
 
-    if len(cands) < 3:
-        return [], 0.0
-
-    # Sort by distance to last track point
-    cands.sort(key=lambda c: np.sqrt((c[0] - last_in_tile[0]) ** 2 + (c[1] - last_in_tile[1]) ** 2))
-
-    # Check mean row is not going backwards
-    cand_mean_row = np.mean([c[0] for c in cands])
-    if cand_mean_row - last_in_tile[0] < -1:
-        return [], 0.0
-
-    # Sort into connected chain
-    cands = _sort_coords_greedy(cands)
-
-    # Bridge gap with shortest path if needed
-    if len(cands) > 0:
-        gap_dist = np.sqrt(
-            (last_in_tile[0] - cands[0][0]) ** 2 + (last_in_tile[1] - cands[0][1]) ** 2
-        )
-        if gap_dist > 1.5:
-            # Build binary image of nearby skeleton in tile space
-            tile_struct = np.zeros((dim, dim), dtype=bool)
-            for r, c in nearby:
-                ri, ci = round(r - win_offset[0]), round(c - win_offset[1])
-                if 0 <= ri < dim and 0 <= ci < dim:
-                    tile_struct[ri, ci] = True
-            start_rc = (round(last_in_tile[0]), round(last_in_tile[1]))
-            end_rc = cands[0]
-            if (0 <= start_rc[0] < dim and 0 <= start_rc[1] < dim
-                    and 0 <= end_rc[0] < dim and 0 <= end_rc[1] < dim):
-                bridge = find_shortest_path_on_skeleton(tile_struct, start_rc, end_rc)
-                cands = bridge + cands
-
-    # Limit to MAX_CANDIDATES
-    cands = cands[:MAX_CANDIDATES]
-
-    # Check mean row again after pathfinding
-    if len(cands) > 0:
-        cand_mean_row = np.mean([c[0] for c in cands])
-        if cand_mean_row - last_in_tile[0] < -1:
-            return [], 0.0
-
-    # Convert back from tile space to original space (unpad)
-    result = [(r + win_offset[0] - pad_size, c + win_offset[1] - pad_size) for r, c in cands]
-    return result, decision_prob
+    if _rows_mean_ok(select, t_r):
+        chosen = select
+    elif _rows_mean_ok(cands, t_r):
+        # Mathematica's own fallback: the full (untruncated, unbridged) SortCoords chain.
+        chosen = cands
+    else:
+        return [], decision_prob
+    return [(r + r0 - pad, c + c0 - pad) for r, c in chosen], decision_prob

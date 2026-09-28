@@ -14,12 +14,14 @@ authors = [
 dependencies = [
     "torch>=2.0",
     "numpy>=1.24",
-    "Pillow>=9.0",
+    "Pillow>=11.0",  # image import is tested against Mathematica with Pillow 11.3
     "scikit-image>=0.21",
     "scipy>=1.10",
     "PyWavelets>=1.4",
     "click>=8.0",
     "tqdm>=4.60",
+    "tifffile>=2024.8.30",  # ... and tifffile 2024.8.30
+    "imagecodecs>=2024.1",  # LZW and other TIFF compressions for tifffile
 ]
 
 [project.optional-dependencies]

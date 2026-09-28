@@ -1,0 +1,363 @@
+{
+ "generator": "Mathematica 14.3.0 (MacOSX-ARM64), ParallelThreadNumber 4, on synthetic data: ColorConvert[Image[rgb, type], \"Grayscale\"] (gray_*), ImageAdjust[Image[x, type]] (adjust_*; adjust_b16: ImageAdjust[Image[{Range[lo, hi]}, \"Bit16\"]] for each range), ImageResize[Image[x, type], {w, h}] (resize_*). Integer-typed arrays are stored as levels.",
+ "adjust": [
+  {
+   "j": 2,
+   "type": "Real64"
+  },
+  {
+   "j": 3,
+   "type": "Byte"
+  },
+  {
+   "j": 6,
+   "type": "Real32"
+  },
+  {
+   "j": 7,
+   "type": "Real32"
+  },
+  {
+   "j": 8,
+   "type": "Bit16"
+  },
+  {
+   "j": 10,
+   "type": "Bit16"
+  },
+  {
+   "j": 16,
+   "type": "Byte"
+  },
+  {
+   "j": 17,
+   "type": "Bit16"
+  },
+  {
+   "j": 18,
+   "type": "Real32"
+  },
+  {
+   "j": 22,
+   "type": "Real64"
+  },
+  {
+   "j": 23,
+   "type": "Real32"
+  },
+  {
+   "j": 27,
+   "type": "Bit16"
+  },
+  {
+   "j": 29,
+   "type": "Real64"
+  },
+  {
+   "j": 31,
+   "type": "Real64"
+  },
+  {
+   "j": 34,
+   "type": "Real64"
+  },
+  {
+   "j": 35,
+   "type": "Real64"
+  },
+  {
+   "j": 410,
+   "type": "Byte"
+  },
+  {
+   "j": 414,
+   "type": "Bit16"
+  },
+  {
+   "j": 422,
+   "type": "Byte"
+  }
+ ],
+ "resize": [
+  {
+   "key": "resize_p4_1",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_2",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_4",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_6",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_7",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_8",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_10",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_13",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_14",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_16",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_18",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_19",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_22",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_24",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_25",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_28",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_29",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_31",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_32",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_33",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_34",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p4_36",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_25",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_93",
+   "type": "Real32",
+   "out": [
+    16,
+    176
+   ]
+  },
+  {
+   "key": "resize_p1_103",
+   "type": "Real32",
+   "out": [
+    16,
+    160
+   ]
+  },
+  {
+   "key": "resize_p1_114",
+   "type": "Real32",
+   "out": [
+    16,
+    32
+   ]
+  },
+  {
+   "key": "resize_p1_122",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_123",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_125",
+   "type": "Bit16",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_129",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_131",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_132",
+   "type": "Byte",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_135",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_141",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  },
+  {
+   "key": "resize_p1_142",
+   "type": "Real32",
+   "out": [
+    64,
+    64
+   ]
+  }
+ ]
+}

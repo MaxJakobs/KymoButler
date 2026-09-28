@@ -9,9 +9,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from skimage.transform import resize
 
-from kymobutler.preprocessing import load_and_preprocess, resize_to_multiple_of_16
+from kymobutler.morphology import check_image_size
+from kymobutler.preprocessing import load_and_preprocess_mma, resize_to_multiple_of_16
 
 
 def segment_bidirectional(
@@ -30,12 +30,19 @@ def segment_bidirectional(
 
     Returns:
         (was_negated, raw_grayscale, preprocessed, prediction_map)
-        prediction_map is (H, W) float32, the foreground probability channel.
-    """
-    preprocessed, raw, was_negated = load_and_preprocess(image_path)
-    original_dims = preprocessed.shape
+        prediction_map is the float32 foreground probability channel at the network's
+        resolution (both dimensions rounded to a multiple of 16), exactly like Mathematica's
+        ``pred``. It is NOT resized back to the image: BiKymoButlerTrack binarizes it at this
+        resolution and then resizes the binary image (see ``process_segmentation_bi``).
 
-    # Resize for net compatibility
+    Raises:
+        ValueError: for an image smaller than 9 x 9 px, which Mathematica cannot segment
+            either (``check_image_size``).
+    """
+    preprocessed, raw, was_negated, _ = load_and_preprocess_mma(image_path)
+    check_image_size(preprocessed.shape)
+
+    # Resize for net compatibility (Lanczos, from the float64 kympreproc)
     resized = resize_to_multiple_of_16(preprocessed)
 
     # Run network
@@ -44,13 +51,10 @@ def segment_bidirectional(
     with torch.no_grad():
         pred = net(tensor)  # (1, 2, H, W)
 
-    # Extract foreground channel and resize back
-    pred_map = pred[0, 0].cpu().numpy()  # foreground probability
-    pred_map = resize(pred_map, original_dims, anti_aliasing=True, preserve_range=True).astype(
-        np.float32
-    )
+    # Foreground probability channel, kept at network resolution
+    pred_map = pred[0, 0].cpu().numpy().astype(np.float32)
 
-    return was_negated, raw, preprocessed, pred_map
+    return was_negated, raw.astype(np.float32), preprocessed.astype(np.float32), pred_map
 
 
 def segment_unidirectional(
@@ -69,10 +73,17 @@ def segment_unidirectional(
 
     Returns:
         (was_negated, raw_grayscale, preprocessed, pred_dict)
-        pred_dict has 'ant' and 'ret' keys with (H, W) float32 probability maps.
+        pred_dict has 'ant' and 'ret' keys with float32 probability maps at the network's
+        resolution (both dimensions rounded to a multiple of 16), exactly like Mathematica's
+        ``out``. They are NOT resized back to the image: UniKymoButlerTrack binarizes them at
+        this resolution and then resizes the binary images (see ``process_segmentation_uni``).
+
+    Raises:
+        ValueError: for an image smaller than 9 x 9 px, which Mathematica cannot segment
+            either (``check_image_size``).
     """
-    preprocessed, raw, was_negated = load_and_preprocess(image_path)
-    original_dims = preprocessed.shape
+    preprocessed, raw, was_negated, _ = load_and_preprocess_mma(image_path)
+    check_image_size(preprocessed.shape)
 
     resized = resize_to_multiple_of_16(preprocessed)
 
@@ -81,11 +92,6 @@ def segment_unidirectional(
     with torch.no_grad():
         pred = net(tensor)  # dict with 'ant', 'ret' each (1, 2, H, W)
 
-    pred_dict = {}
-    for key in ("ant", "ret"):
-        p = pred[key][0, 0].cpu().numpy()
-        pred_dict[key] = resize(p, original_dims, anti_aliasing=True, preserve_range=True).astype(
-            np.float32
-        )
+    pred_dict = {key: pred[key][0, 0].cpu().numpy().astype(np.float32) for key in ("ant", "ret")}
 
-    return was_negated, raw, preprocessed, pred_dict
+    return was_negated, raw.astype(np.float32), preprocessed.astype(np.float32), pred_dict

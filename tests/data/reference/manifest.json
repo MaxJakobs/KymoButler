@@ -1,0 +1,38 @@
+{
+ "generator": "Mathematica 14.3.0 (Mac OS X ARM), legacy/packages/KymoButler.wl BiKymoButlerSegment/BiKymoButler with Bidirectional_Segmentation_Module_V1_1 and Decision_Module_V1_0, vision threshold 0.5, CPU",
+ "arrays": "pred: Mathematica net output at network resolution (float32); kympreproc: Mathematica preprocessed kymograph (float32); smoothed = SmoothBin@SmoothBin@ImageResize[Binarize[pred, t], dim]; thinned = Thinning@smoothed; pruned = Pruning[thinned, 3]; paths = SelectComponents[pruned, ...]",
+ "tracks": "Mathematica BiKymoButler tracks, 1-based [time, space], in Mathematica's order",
+ "cases": [
+  {
+   "image": "tests/data/bitest.png",
+   "arrays": "bitest_mma.npz",
+   "tracks": "bitest_mma_tracks_t0.2_s10_f10.json",
+   "threshold": 0.2,
+   "min_size": 10,
+   "min_frames": 10,
+   "n_tracks": 13
+  },
+  {
+   "image": "tests/data/bitest.png",
+   "arrays": "bitest_mma.npz",
+   "tracks": "bitest_mma_tracks_t0.2_s3_f3.json",
+   "threshold": 0.2,
+   "min_size": 3,
+   "min_frames": 3,
+   "n_tracks": 15
+  },
+  {
+   "image": "tests/data/unitest2.png",
+   "arrays": "unitest2_mma.npz",
+   "tracks": "unitest2_mma_tracks_t0.2_s3_f3.json",
+   "threshold": 0.2,
+   "min_size": 3,
+   "min_frames": 3,
+   "n_tracks": 6
+  }
+ ],
+ "resize": {
+  "file": "resize_mma.npz",
+  "content": "Mathematica 14.3 ImageResize[Binarize[randomImage, 1 - p], {w, h}] on synthetic random binary images: 16*Round[d/16] -> d along rows (d = 9..200, 2 columns), along columns (d = 9..200, 2 rows) and 40 random 2D cases (d1, d2 in 9..60). shapes[i] = (h_in, w_in, h_out, w_out); inputs/outputs are the np.packbits of the concatenated row-major pixels."
+ }
+}

@@ -1,7 +1,7 @@
 """Validate converted PyTorch models against Mathematica reference outputs.
 
 Prerequisites:
-    - Run scripts/export_to_onnx.wls (generates reference outputs)
+    - Run legacy/scripts/export_to_onnx.wls (generates reference outputs)
     - Run scripts/convert_weights.py (generates PyTorch weights)
 """
 
@@ -67,7 +67,7 @@ def main():
 
     if not ref_path.exists():
         print(f"Reference output not found: {ref_path}")
-        print("Run scripts/export_to_onnx.wls first.")
+        print("Run legacy/scripts/export_to_onnx.wls first.")
         return
 
     validate(model_path, args.test_image, ref_path)

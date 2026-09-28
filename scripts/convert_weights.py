@@ -5,7 +5,7 @@ Usage:
 
 Prerequisites:
     pip install kymobutler[convert]
-    Run scripts/export_to_onnx.wls first to generate ONNX files.
+    Run legacy/scripts/export_to_onnx.wls first to generate ONNX files.
 """
 
 from __future__ import annotations

@@ -1,0 +1,595 @@
+{
+ "generator": "Mathematica 14.3.0 (MacOSX-ARM64), ParallelThreadNumber 4: k = Import[file]; ImageData[k]; rawkym = ImageAdjust@ColorConvert[ImageAdjust@RemoveAlphaChannel@k, \"Grayscale\"]; cls = ImageResize[rawkym, {64, 64}]; neg = normlines@If[isNegated@rawkym, ColorNegate@rawkym, rawkym]; netin = ImageResize[neg, 16*Round@N[dim/16]] (KymoButler.wl). Integer-typed arrays are stored as levels, Real32 as float32, Real64 as float64. Inputs: synthetic files in tests/data/formats.",
+ "files": {
+  "i16_edges.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "i16_mixed.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "i16_neg.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "i16be.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "i32_mixed.tif": {
+   "type": "Real32",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32"
+  },
+  "i32_big.tif": {
+   "type": "Real32",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32"
+  },
+  "u32.tif": {
+   "type": "Real32",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32"
+  },
+  "i8.tif": {
+   "type": "Byte",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Byte"
+  },
+  "f64.tif": {
+   "type": "Real64",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real64"
+  },
+  "f32neg.tif": {
+   "type": "Real32",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32"
+  },
+  "f16.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "g16.png": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "rgb16.png": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Bit16"
+  },
+  "rgba16.png": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 4,
+   "colorspace": "RGB",
+   "raw_type": "Bit16"
+  },
+  "la16.png": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 2,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "la16.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 2,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "rgba16.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 4,
+   "colorspace": "RGB",
+   "raw_type": "Bit16"
+  },
+  "rgb16.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Bit16"
+  },
+  "cmyk.tif": {
+   "type": "Byte",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 4,
+   "colorspace": "CMYK",
+   "raw_type": "Byte"
+  },
+  "cmyk.jpg": {
+   "type": "Byte",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 4,
+   "colorspace": "CMYK",
+   "raw_type": "Byte"
+  },
+  "cmyk16.tif": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 4,
+   "colorspace": "CMYK",
+   "raw_type": "Bit16"
+  },
+  "cmykbig.tif": {
+   "type": "Byte",
+   "dims": [
+    64,
+    64
+   ],
+   "channels": 4,
+   "colorspace": "CMYK",
+   "raw_type": "Byte"
+  },
+  "ptrans.png": {
+   "type": "Byte",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 4,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "single.gif": {
+   "type": "Byte",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "stack3.tif": {
+   "mathematica": "Import returns a List of 3 images"
+  },
+  "anim.gif": {
+   "mathematica": "Import returns a List of 3 images"
+  },
+  "bit.png": {
+   "type": "Bit",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "bit.tif": {
+   "mathematica": "Import fails"
+  },
+  "I32save.png": {
+   "type": "Bit16",
+   "dims": [
+    6,
+    9
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "bit_mma.png": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "bit_mma.tif": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "bit_pil.png": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "bit_pil.tif": {
+   "mathematica": "Import fails"
+  },
+  "bit_pil_g4.tif": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "bit_tf.tif": {
+   "mathematica": "Import fails"
+  },
+  "f32rgb.tif": {
+   "type": "Real32",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Real32"
+  },
+  "f64rgb.tif": {
+   "type": "Real64",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Real64"
+  },
+  "ga8.tif": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 2,
+   "colorspace": "Grayscale",
+   "raw_type": "Byte"
+  },
+  "ga8_assoc.tif": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 2,
+   "colorspace": "Grayscale",
+   "raw_type": "Byte"
+  },
+  "i16rgb.tif": {
+   "type": "Bit16",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Bit16"
+  },
+  "l.bmp": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "p.bmp": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "rgb.bmp": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "rgba8_assoc.tif": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 4,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "rgba8_unassoc.tif": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 4,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "rgba8_unspec.tif": {
+   "type": "Byte",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 4,
+   "colorspace": "RGB",
+   "raw_type": "Byte"
+  },
+  "u16_2samp.tif": {
+   "type": "Bit16",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 2,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16"
+  },
+  "b1.bmp": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "b1_pb_bps.tif": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "b1_pb_nobps.tif": {
+   "mathematica": "Import fails"
+  },
+  "b1_pil_lzw.tif": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "b1_raw_bps.tif": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "b1_raw_bps_white.tif": {
+   "type": "Bit",
+   "dims": [
+    7,
+    11
+   ],
+   "channels": 1,
+   "colorspace": "Automatic",
+   "raw_type": "Byte"
+  },
+  "b1_raw_nobps.tif": {
+   "mathematica": "Import fails"
+  },
+  "kymo_f32.tif": {
+   "type": "Real32",
+   "dims": [
+    50,
+    70
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32",
+   "negated": false
+  },
+  "kymo_f32neg.tif": {
+   "type": "Real32",
+   "dims": [
+    44,
+    63
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32",
+   "negated": true
+  },
+  "kymo_f32rgb.tif": {
+   "type": "Real32",
+   "dims": [
+    38,
+    55
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Real32",
+   "negated": false
+  },
+  "kymo_f64.tif": {
+   "type": "Real64",
+   "dims": [
+    45,
+    61
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real64",
+   "negated": false
+  },
+  "kymo_i16.tif": {
+   "type": "Bit16",
+   "dims": [
+    41,
+    57
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16",
+   "negated": false
+  },
+  "kymo_i32.tif": {
+   "type": "Real32",
+   "dims": [
+    40,
+    52
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Real32",
+   "negated": false
+  },
+  "kymo_rgb16.tif": {
+   "type": "Bit16",
+   "dims": [
+    43,
+    59
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Bit16",
+   "negated": false
+  },
+  "kymo_rgb8.png": {
+   "type": "Byte",
+   "dims": [
+    47,
+    66
+   ],
+   "channels": 3,
+   "colorspace": "RGB",
+   "raw_type": "Byte",
+   "negated": false
+  },
+  "kymo_u16neg.tif": {
+   "type": "Bit16",
+   "dims": [
+    44,
+    63
+   ],
+   "channels": 1,
+   "colorspace": "Grayscale",
+   "raw_type": "Bit16",
+   "negated": true
+  }
+ }
+}

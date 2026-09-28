@@ -80,18 +80,19 @@ class OnnxDecNet(nn.Module):
 class OnnxClassNet(nn.Module):
     """Wrapper around ONNX-converted classifier.
 
-    The ONNX model may require a TrainingMode flag input.
+    The exported classifier (classifier.onnx) has a second graph input, ``TrainingMode``
+    (its dropout layers), which is always passed as False (inference).
     """
 
-    def __init__(self, onnx_model: nn.Module):
+    def __init__(self, onnx_model: nn.Module, training_mode_input: bool = True):
         super().__init__()
         self.model = onnx_model
+        self.training_mode_input = training_mode_input
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        try:
-            return self.model(x)
-        except TypeError:
+        if self.training_mode_input:
             return self.model(x, torch.tensor(False))
+        return self.model(x)
 
 
 def load_default_models(
@@ -163,7 +164,14 @@ def _load_onnx_model(key: str, path: Path, device: str) -> nn.Module:
         "decnet": OnnxDecNet,
         "classnet": OnnxClassNet,
     }
-    wrapped = wrappers[key](torch_model)
+    if key == "classnet":
+        initializers = {i.name for i in onnx_model.graph.initializer}
+        inputs = [i.name for i in onnx_model.graph.input if i.name not in initializers]
+        if len(inputs) not in (1, 2) or (len(inputs) == 2 and inputs[1] != "TrainingMode"):
+            raise ValueError(f"{path}: unexpected classifier inputs {inputs}")
+        wrapped = OnnxClassNet(torch_model, training_mode_input=len(inputs) == 2)
+    else:
+        wrapped = wrappers[key](torch_model)
     wrapped.to(device)
     wrapped.eval()
     return wrapped

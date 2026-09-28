@@ -14,9 +14,9 @@ import torch
 from scipy.ndimage import binary_dilation
 from skimage.morphology import thin, remove_small_objects
 
+from kymobutler.pruning import mma_pruning
 from kymobutler.morphology import (
     _filter_components,
-    _prune_branches,
     detect_seeds,
     smooth_binary_bi,
 )
@@ -90,9 +90,9 @@ def _wavelet_segmentation(
     # Dilate by 1 pixel
     binary = binary_dilation(binary, iterations=1)
 
-    # Prune branches of length 5
+    # Pruning[Thinning@..., 5] (WaveletPackage.wl)
     skeleton = thin(binary)
-    skeleton = _prune_branches(skeleton, iterations=5)
+    skeleton = mma_pruning(skeleton, 5)
 
     # Remove small components
     skeleton = remove_small_objects(skeleton, min_size=5)
